@@ -1,0 +1,18 @@
+venv/
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+query_api.log
+node_modules/
+*.log
+*.db
+*.sqlite
+schema_design/Raw_Data/  # Exclude Raw_Data folder
+abstraction_layer/embed_companies.py  # Exclude embeddings script
+abstraction_layer/test_api.py         # Exclude test script
+abstraction_layer/run.ipynb           # Exclude notebook
+abstraction_layer/query_api.log       # Exclude log
+abstraction_layer/.env                # Exclude sensitive file
+api_integration/.env                  # Exclude sensitive file

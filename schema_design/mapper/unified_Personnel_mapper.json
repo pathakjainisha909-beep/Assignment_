@@ -1,0 +1,179 @@
+{
+  "Unified_Personnel": {
+    "columns": {
+      "person_id": {
+        "ColourcoatsBigin": "system generated",
+        "MetaliaBigin": "system generated",
+        "Rolodex": "system generated"
+      },
+      "data_source": {
+        "type": "string",
+        "description": "Indicates the source system for data lineage tracking"
+      },
+      "workspace_id": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.workspace_id"
+      },
+      "first_name": {
+        "ColourcoatsBigin": "Contacts.First_Name",
+        "MetaliaBigin": "Contacts.First_Name",
+        "Rolodex": "Rolodex_contacts.first_name"
+      },
+      "last_name": {
+        "ColourcoatsBigin": "Contacts.Last_Name",
+        "MetaliaBigin": "Contacts.Last_Name",
+        "Rolodex": "Rolodex_contacts.last_name"
+      },
+      "full_name": {
+        "ColourcoatsBigin": "Contacts.Full_Name",
+        "MetaliaBigin": "Contacts.Full_Name",
+        "Rolodex": "Rolodex_contacts.full_name"
+      },
+      "title": {
+        "ColourcoatsBigin": "Contacts.Title",
+        "MetaliaBigin": "Contacts.Title",
+        "Rolodex": "Rolodex_contacts.title"
+      },
+      "Company name": {
+        "ColourcoatsBigin": "Contacts.Account_Name.name",
+        "MetaliaBigin": "Contacts.Account_Name.name",
+        "Rolodex": null
+      },
+      "Company_Id": {
+        "ColourcoatsBigin": "Contacts.Account_Name.id",
+        "MetaliaBigin": "Contacts.Account_Name.id",
+        "Rolodex": null
+      },
+      "works_at_multiple": {
+        "type": "array",
+        "items": "string"
+      },
+      "email": {
+        "ColourcoatsBigin": "Contacts.Email",
+        "MetaliaBigin": "Contacts.Email",
+        "Rolodex": null
+      },
+      "mobile": {
+        "ColourcoatsBigin": "Contacts.Mobile",
+        "MetaliaBigin": "Contacts.Mobile",
+        "Rolodex": null
+      },
+      "alternate_mobile": {
+        "ColourcoatsBigin": "Contacts.Alternate_Mobile",
+        "MetaliaBigin": "Contacts.Alternate_Mobile",
+        "Rolodex": null
+      },
+      "photo_url": {
+        "ColourcoatsBigin": "Contacts.Record_Image",
+        "MetaliaBigin": "Contacts.Record_Image",
+        "Rolodex": "Rolodex_contacts.image_url"
+      },
+      "business_card_image_url": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.business_card_image_url"
+      },
+      "linkedin_profile": {
+        "ColourcoatsBigin": "Contacts.LinkedIn_Profile",
+        "MetaliaBigin": "Contacts.LinkedIn_Profile",
+        "Rolodex": null
+      },
+      "linkedin_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.linkedin_slug"
+      },
+      "facebook_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.facebook_slug"
+      },
+      "instagram_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.instagram_slug"
+      },
+      "x_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.x_slug"
+      },
+      "youtube_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.youtube_slug"
+      },
+      "website_url": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.website_url"
+      },
+      "city": {
+        "ColourcoatsBigin": "Contacts.Mailing_City",
+        "MetaliaBigin": "Contacts.Mailing_City",
+        "Rolodex": "Rolodex_contacts.location.split(', ')[0]"
+      },
+      "state": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.location.split(', ')[1]"
+      },
+      "country": {
+        "ColourcoatsBigin": "Contacts.Mailing_Country",
+        "MetaliaBigin": "Contacts.Mailing_Country",
+        "Rolodex": "Rolodex_contacts.location.split(', ')[2]"
+      },
+      "birthday_day": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.birthday_day"
+      },
+      "birthday_month": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.birthday_month"
+      },
+      "birthday_year": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.birthday_year"
+      },
+      "manager_id": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.manager_id"
+      },
+      "department": {
+        "ColourcoatsBigin": "Contacts.Department",
+        "MetaliaBigin": "Contacts.Department",
+        "Rolodex": null
+      },
+      "description": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Rolodex_contacts.description"
+      },
+      "contact_type": {
+        "ColourcoatsBigin": "Contacts.Contact_type",
+        "MetaliaBigin": "Contacts.Contact_type",
+        "Rolodex": null
+      },
+      "rolodex_contact_id": {
+        "ColourcoatsBigin": "Contacts.Rolodex_Contact_ID",
+        "MetaliaBigin": "Contacts.Rolodex_Contact_ID",
+        "Rolodex": null
+      },
+      "rolodex_company_id": {
+        "ColourcoatsBigin": "Contacts.Rolodex_Company_ID",
+        "MetaliaBigin": "Contacts.Rolodex_Company_ID",
+        "Rolodex": null
+      },
+      "Interakt_Contact_ID": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "Contacts.Interakt_Contact_ID"
+      }
+    }
+  }
+}

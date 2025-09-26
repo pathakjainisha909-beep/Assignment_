@@ -1,0 +1,155 @@
+{
+  "Unified_Companies": {
+    "columns": {
+      "company_name": {
+        "ColourcoatsBigin": "Accounts.Account_Name",
+        "MetaliaBigin": "Accounts.Account_Name",
+        "Rolodex": "companies.name"
+      },
+      "data_source": {
+        "type": "string",
+        "description": "Indicates the source system for data lineage tracking"
+      },
+      "description": {
+        "ColourcoatsBigin": "Accounts.Description",
+        "MetaliaBigin": "Accounts.Description",
+        "Rolodex": "companies.description"
+      },
+      "website": {
+        "ColourcoatsBigin": "Accounts.Website",
+        "MetaliaBigin": "Accounts.Website",
+        "Rolodex": "companies.website_url"
+      },
+      "company_type": {
+        "ColourcoatsBigin": "Accounts.Account_Type",
+        "MetaliaBigin": "Accounts.Account_Type",
+        "Rolodex": null
+      },
+      "followers": {
+        "ColourcoatsBigin": "Accounts.$followers",
+        "MetaliaBigin": "Accounts.$followers",
+        "Rolodex": null
+      },
+      "rolodex_company_id": {
+        "ColourcoatsBigin": "Accounts.Rolodex_Company_ID",
+        "MetaliaBigin": "Accounts.Rolodex_Company_ID",
+        "Rolodex": "companies.id"
+      },
+      "interakt_lead_id": {
+        "ColourcoatsBigin": "Accounts.Interakt_Lead_ID",
+        "MetaliaBigin": "Accounts.Interakt_Lead_ID",
+        "Rolodex": null
+      },
+      "bigin_id": {
+        "ColourcoatsBigin": "Accounts.id",
+        "MetaliaBigin": "Accounts.id",
+        "Rolodex": null
+      },
+      "phone": {
+        "ColourcoatsBigin": "Accounts.Phone",
+        "MetaliaBigin": "Accounts.Phone",
+        "Rolodex": "companies.phone_number"
+      },
+      "project_types": {
+        "ColourcoatsBigin": "Accounts.Project_Types",
+        "MetaliaBigin": "Accounts.Project_Types",
+        "Rolodex": null
+      },
+      "address_street": {
+        "ColourcoatsBigin": "Accounts.Billing_Street",
+        "MetaliaBigin":null,
+        "Rolodex": null
+      },
+      "address_city": {
+        "ColourcoatsBigin": "Accounts.Billing_City",
+        "MetaliaBigin": "Accounts.City",
+        "Rolodex": null
+      },
+      "address_state": {
+        "ColourcoatsBigin": "Accounts.Billing_State",
+        "MetaliaBigin": "Accounts.State",
+        "Rolodex": null
+      },
+      "address_postal_code": {
+        "ColourcoatsBigin": "Accounts.Billing_Code",
+        "MetaliaBigin": "Accounts.PIN_Code",
+        "Rolodex": null
+      },
+      "address_country": {
+        "ColourcoatsBigin": "Accounts.Billing_Country",
+        "MetaliaBigin": null,
+        "Rolodex": null
+      },
+      "headquarter_city": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.headquarters_location.split(', ')[0]"
+      },
+      "headquarter_state": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.headquarters_location.split(', ')[1]"
+      },
+      "headquarter_country": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.headquarters_location.split(', ')[2]"
+      },
+      "workspace_id": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.workspace_id"
+      },
+      "linkedin_description": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.linkedin_description"
+      },
+      "logo_url": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.logo_url"
+      },
+      "facebook_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.facebook_slug"
+      },
+      "linkedin_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.linkedin_slug"
+      },
+      "x_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.x_slug"
+      },
+      "instagram_slug": {
+        "ColourcoatsBigin": "Accounts.Instagram",
+        "MetaliaBigin": "Accounts.Instagram",
+        "Rolodex": "companies.instagram_slug"
+      },
+      "country_code": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.country_code"
+      },
+      "phone_number": {
+        "ColourcoatsBigin": "Accounts.Phone",
+        "MetaliaBigin": "Accounts.Phone",
+        "Rolodex": "companies.phone_number"
+      },
+      "arr_estimate": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.arr_estimate"
+      },
+      "number_of_employees": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies.number_of_employees"
+      }
+    }
+  }
+}

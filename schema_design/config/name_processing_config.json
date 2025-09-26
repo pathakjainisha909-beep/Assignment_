@@ -1,0 +1,32 @@
+{
+  "default_country": "IN",
+  "title_prefixes": {
+    "architect": {
+      "patterns": ["ar", "ar.", "arc", "arc.", "arch", "arch.", "architect", "architecture"],
+      "title": "Architect"
+    },
+    "interior_designer": {
+      "patterns": ["id", "id.", "interior", "interior.", "designer"],
+      "title": "Interior Designer"
+    },
+    "client": {
+      "patterns": ["cl", "cl.", "client", "client-"],
+      "title": "Client"
+    },
+    "doctor": {
+      "patterns": ["dr", "dr.", "doctor"],
+      "title": "Doctor"
+    },
+    "engineer": {
+      "patterns": ["eng", "eng.", "engineer"],
+      "title": "Engineer"
+    },
+    "chartered_accountant": {
+      "patterns": ["ca", "ca.", "chartered accountant"],
+      "title": "Chartered Accountant"
+    }
+  },
+  "honorifics_to_remove": ["mr", "mr.", "mrs", "mrs.", "ms", "ms.", "miss", "sir", "madam"],
+  "suffixes_to_remove": ["jr", "jr.", "sr", "sr.", "iii", "iv", "v"],
+  "company_indicators": ["ltd", "pvt", "llc", "inc", "corp", "corporation", "company", "co", "limited", "enterprises", "group", "associates", "consultancy", "services", "solutions"]
+}
