@@ -1,0 +1,151 @@
+{
+  "Unified_Personnel": {
+    "columns": {
+      "person_id": {
+        "type": "string",
+        "description": "System generated UUID",
+        "ColourcoatsBigin": "system generated",
+        "MetaliaBigin": "system generated",
+        "Rolodex": "system generated"
+      },
+      "data_source": {
+        "type": "string",
+        "description": "Source system(s): Rolodex, ColourcoatsBigin, MetaliaBigin, or combinations"
+      },
+      "rolodex_id": {
+        "description": "Rolodex contact ID - master key for cross-system matching",
+        "ColourcoatsBigin": "Rolodex_Contact_ID",
+        "MetaliaBigin": null,
+        "Rolodex": "id"
+      },
+      "colourcoats_bigin_id": {
+        "description": "ColourCoats Bigin contact ID",
+        "ColourcoatsBigin": "id",
+        "MetaliaBigin": null,
+        "Rolodex": null
+      },
+      "metalia_bigin_id": {
+        "description": "Metalia Bigin contact ID",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": "id",
+        "Rolodex": null
+      },
+      "workspace_id": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "workspace_id"
+      },
+      "first_name": {
+        "ColourcoatsBigin": "First_Name",
+        "MetaliaBigin": "First_Name",
+        "Rolodex": "first_name"
+      },
+      "last_name": {
+        "ColourcoatsBigin": "Last_Name",
+        "MetaliaBigin": "Last_Name",
+        "Rolodex": "last_name"
+      },
+      "full_name": {
+        "ColourcoatsBigin": "Full_Name",
+        "MetaliaBigin": "Full_Name",
+        "Rolodex": "full_name"
+      },
+      "title": {
+        "ColourcoatsBigin": "Title",
+        "MetaliaBigin": "Title",
+        "Rolodex": "title"
+      },
+      "primary_company_name": {
+        "ColourcoatsBigin": "Account_Name.name",
+        "MetaliaBigin": "Account_Name.name",
+        "Rolodex": "companies[0].name"
+      },
+      "primary_company_id": {
+        "ColourcoatsBigin": "Account_Name.id",
+        "MetaliaBigin": "Account_Name.id",
+        "Rolodex": "companies[0].id"
+      },
+      "all_companies": {
+        "description": "All company names (comma-separated)",
+        "ColourcoatsBigin": "Account_Name.name",
+        "MetaliaBigin": "Account_Name.name",
+        "Rolodex": "companies.map(c => c.name).join(', ')"
+      },
+      "all_company_ids": {
+        "description": "All company IDs (comma-separated)",
+        "ColourcoatsBigin": "Account_Name.id",
+        "MetaliaBigin": "Account_Name.id",
+        "Rolodex": "companies.map(c => c.id).join(', ')"
+      },
+      "works_at_multiple": {
+        "type": "array",
+        "description": "Array of company names if multiple, empty array otherwise"
+      },
+      "email": {
+        "ColourcoatsBigin": "Email",
+        "MetaliaBigin": "Email",
+        "Rolodex": "emails[0].email_address"
+      },
+      "all_emails": {
+        "type": "array",
+        "description": "All emails if multiple, empty array otherwise",
+        "Rolodex": "emails.map(e => e.email_address)"
+      },
+      "mobile": {
+        "ColourcoatsBigin": "Mobile",
+        "MetaliaBigin": "Mobile",
+        "Rolodex": "phone_numbers[0].phone_number"
+      },
+      "alternate_mobile": {
+        "ColourcoatsBigin": "Alternate_Mobile",
+        "MetaliaBigin": "Alternate_Mobile",
+        "Rolodex": null
+      },
+      "photo_url": {
+        "ColourcoatsBigin": "Record_Image",
+        "MetaliaBigin": "Record_Image",
+        "Rolodex": "image_url"
+      },
+      "linkedin_profile": {
+        "ColourcoatsBigin": "LinkedIn_Profile",
+        "MetaliaBigin": "LinkedIn_Profile",
+        "Rolodex": null
+      },
+      "linkedin_slug": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "linkedin_slug"
+      },
+      "city": {
+        "ColourcoatsBigin": "Mailing_City",
+        "MetaliaBigin": "Mailing_City",
+        "Rolodex": "location.split(', ')[0]"
+      },
+      "state": {
+        "ColourcoatsBigin": "Mailing_State",
+        "MetaliaBigin": "Mailing_State",
+        "Rolodex": "location.split(', ')[1]"
+      },
+      "country": {
+        "ColourcoatsBigin": "Mailing_Country",
+        "MetaliaBigin": "Mailing_Country",
+        "Rolodex": "location.split(', ')[2]"
+      },
+      "department": {
+        "ColourcoatsBigin": "Department",
+        "MetaliaBigin": "Department",
+        "Rolodex": null
+      },
+      "contact_type": {
+        "ColourcoatsBigin": "Contact_type",
+        "MetaliaBigin": "Contact_Type",
+        "Rolodex": null
+      },
+      "description": {
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": "Description",
+        "Rolodex": "description"
+      }
+    }
+  }
+}

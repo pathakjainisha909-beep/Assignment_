@@ -32,24 +32,15 @@ def safe_get_value(record: Dict[str, Any], path: str) -> Optional[Any]:
     except:
         return None
 
-def normalize_company_name(name: str) -> str:
-    if not name:
-        return ""
-    name = re.sub(r'\s+', ' ', name.lower().strip())
-    name = re.sub(r'\s*(pvt|private)?\s*(ltd|limited)\.?', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'\s*llc\.?', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'\s*inc\.?', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'\s*corp\.?', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'\s*group', '', name, flags=re.IGNORECASE)
-    name = re.sub(r'[^a-z0-9\s]', '', name)
-    return re.sub(r'\s+', ' ', name.strip())
-
-def exact_normalized_company_match(rec1: Dict, rec2: Dict) -> bool:
-    name1 = rec1.get('company_name')
-    name2 = rec2.get('company_name')
-    if not name1 or not name2:
+def exact_rolodex_id_match(rec1: Dict, rec2: Dict) -> bool:
+    """Match records based on rolodex_company_id (the proper way!)"""
+    id1 = rec1.get('rolodex_company_id')
+    id2 = rec2.get('rolodex_company_id')
+    
+    # Both must have valid IDs and they must match
+    if not id1 or not id2:
         return False
-    return normalize_company_name(name1) == normalize_company_name(name2)
+    return str(id1).strip() == str(id2).strip()
 
 def load_data_file(file_path: str) -> List[Dict[str, Any]]:
     try:
@@ -64,14 +55,15 @@ def load_data_file(file_path: str) -> List[Dict[str, Any]]:
     except:
         return []
 
-def find_matches(list1: List[Dict], list2: List[Dict]) -> List[Tuple[int, int]]:
+def find_matches_by_rolodex_id(list1: List[Dict], list2: List[Dict]) -> List[Tuple[int, int]]:
+    """Find matches using rolodex_company_id instead of company names"""
     matches = []
     used2 = set()
     for i, rec1 in enumerate(list1):
         for j, rec2 in enumerate(list2):
             if j in used2:
                 continue
-            if exact_normalized_company_match(rec1, rec2):
+            if exact_rolodex_id_match(rec1, rec2):
                 matches.append((i, j))
                 used2.add(j)
                 break
@@ -100,6 +92,7 @@ def create_unified_company(record: Dict, mappings: Dict, source_config: Dict) ->
         'data_source': source_name,
     }
     
+    # Set the proper ID fields based on source
     if source_name == 'Rolodex':
         unified['rolodex_id'] = str(safe_get_value(record, 'id'))
     elif 'Bigin' in source_name:
@@ -125,13 +118,14 @@ def create_unified_company(record: Dict, mappings: Dict, source_config: Dict) ->
         unified[field] = value
     return unified
 
-def chain_merge(group_lists: List[Tuple[str, List[Dict]]], id_keys: List[str]) -> List[Dict]:
+def chain_merge_by_rolodex_id(group_lists: List[Tuple[str, List[Dict]]], id_keys: List[str]) -> List[Dict]:
+    """Chain merge using rolodex_company_id matching"""
     if not group_lists:
         return []
     
     current = group_lists[0][1]
     for _, next_list in group_lists[1:]:
-        matches = find_matches(current, next_list)
+        matches = find_matches_by_rolodex_id(current, next_list)
         new_current = []
         matched_next = set()
         
@@ -175,7 +169,7 @@ def unify_companies(source_configs: List[Dict]):
         print(f"Error loading mapper: {e}")
         return
 
-    print("Processing company data sources...")
+    print("Processing company data sources with Rolodex ID matching...")
     all_id_keys = ['rolodex_id', 'colourcoats_bigin_id', 'metalia_bigin_id']
     ordered_types = ['bigin', 'rolodex']
     combined = None
@@ -195,12 +189,12 @@ def unify_companies(source_configs: List[Dict]):
             type_lists.append((config['name'], unified))
             print(f"Loaded {len(unified)} records from {config['name']}")
         
-        combined_type = chain_merge(type_lists, all_id_keys)
+        combined_type = chain_merge_by_rolodex_id(type_lists, all_id_keys)
         
         if combined is None:
             combined = combined_type
         else:
-            matches = find_matches(combined, combined_type)
+            matches = find_matches_by_rolodex_id(combined, combined_type)
             new_combined = []
             matched_type = set()
             
@@ -238,6 +232,10 @@ def unify_companies(source_configs: List[Dict]):
         df.to_csv(output_path, index=False)
         print(f"Saved {len(df)} unified company records to {output_path}")
         print(f"Processed {total_records} total records with {len(df)} final unified records")
+        
+        # Print some stats about matches
+        rolodex_matches = sum(1 for rec in combined if rec.get('rolodex_company_id') and '+' in str(rec.get('data_source', '')))
+        print(f"Found {rolodex_matches} companies with matching Rolodex IDs across systems")
 
 if __name__ == "__main__":
     source_configs = [
