@@ -4,7 +4,7 @@
 
 This repository contains three main components:
 
-1. **abstraction_layer**: The core backend API built with FastAPI, featuring NL2SQL functionality using the Gemini API, a local frontend for interaction, and support for future embeddings (currently disabled).
+1. **abstraction_layer**: The core backend API built with FastAPI, functionality using the Gemini API, a local frontend for interaction
 2. **api_integration**: Scripts to fetch data from external sources (e.g., Bigin, Rolodex) to populate the database.
 3. **schema_design**: Data modeling scripts and raw CSV files for defining and migrating the database schema.
 
@@ -32,13 +32,13 @@ drive link : [https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6J
 
 ## /abstraction_layer
 
-# Frontend
+### Frontend
 
 npm install
 
 npm run dev
 
-# Backend
+### Backend
 Set Up Virtual Environment
 - python -m venv venv
 - venv\Scripts\activate
