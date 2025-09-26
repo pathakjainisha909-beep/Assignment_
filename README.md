@@ -28,7 +28,7 @@ This repository contains three main components:
 # schema_design
 
 add a Raw Data folder in schema_design folder from the drive link
-drive link : https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6JMliDUU?usp=drive_link
+drive link : [https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6JMliDUU?usp=drive_link](https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6JMliDUU?usp=sharing)
 
 # /abstraction_layer
 
