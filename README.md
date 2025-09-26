@@ -13,11 +13,6 @@ This repository contains three main components:
 - Integrate external data sources for a unified dataset.
 - Provide a structured schema for scalable data management.
 
-### Future Potential
-- Enable semantic similarity search using embeddings (code included but not active—see `embed_companies.py` for setup).
-
-
-
 ## Prerequisites
 - **Python 3.8+**
 - **PostgreSQL 15+** 
@@ -30,8 +25,10 @@ This repository contains three main components:
 1. **Clone the Repository**:
   git clone https://github.com/pathakjainisha909-beep/Task_Assignment.git
 
+# schema_design
 
-
+add a Raw Data folder in schema_design folder from the drive link
+drive link : https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6JMliDUU?usp=drive_link
 
 # /abstraction_layer
 
