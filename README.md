@@ -25,12 +25,12 @@ This repository contains three main components:
 1. **Clone the Repository**:
   git clone https://github.com/pathakjainisha909-beep/Task_Assignment.git
 
-# schema_design
+## schema_design
 
 add a Raw Data folder in schema_design folder from the drive link
 drive link : [https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6JMliDUU?usp=drive_link](https://drive.google.com/drive/folders/1dLZFCiwm2O8MndEwVpHJxIeG6JMliDUU?usp=sharing)
 
-# /abstraction_layer
+## /abstraction_layer
 
 # Frontend
 
@@ -39,12 +39,15 @@ npm install
 npm run dev
 
 # Backend
-
-2. **Set Up Virtual Environment**:
+Set Up Virtual Environment
  python -m venv venv
 venv\Scripts\activate
 
 pip install -r requirements.txt
+
+python setup_postgresql.py
+
+python app_postgres.py
 
 
 
