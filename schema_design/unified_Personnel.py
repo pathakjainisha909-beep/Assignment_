@@ -7,9 +7,8 @@ from typing import Dict, List, Optional, Tuple
 import phonenumbers
 from phonenumbers import PhoneNumberFormat, NumberParseException
 
-def load_config() -> Dict:
-    """Load name processing config with fallback defaults"""
-    config_path = r"C:\Projects\Junior AI Engineer Task\config\name_processing_config.json"
+def load_config(base_dir: str) -> Dict:
+    config_path = os.path.join(base_dir, "config", "name_processing_config.json")
     try:
         with open(config_path, 'r', encoding='utf-8') as f:
             return json.load(f)
@@ -28,7 +27,6 @@ def load_config() -> Dict:
         }
 
 def safe_get_value(record: Dict, path: str) -> Optional:
-    """Safely extract nested values"""
     if not path or not record:
         return None
     
@@ -45,17 +43,33 @@ def safe_get_value(record: Dict, path: str) -> Optional:
                 return parts[index] if len(parts) > index else None
         else:
             current = record
-            for key in path.split('.'):
-                if isinstance(current, dict) and key in current:
-                    current = current[key]
+            for part in path.split('.'):
+                if '[' in part and part.endswith(']'):
+                    base, index_str = part.split('[', 1)
+                    index_str = index_str.rstrip(']')
+                    if base:
+                        if isinstance(current, dict) and base in current:
+                            current = current[base]
+                        else:
+                            return None
+                    if index_str.isdigit():
+                        index = int(index_str)
+                        if isinstance(current, list) and 0 <= index < len(current):
+                            current = current[index]
+                        else:
+                            return None
+                    else:
+                        return None
                 else:
-                    return None
+                    if isinstance(current, dict) and part in current:
+                        current = current[part]
+                    else:
+                        return None
             return current if current not in [None, '', []] else None
     except:
         return None
 
 def normalize_phone(phone: str, country: str = None, config: Dict = None) -> Optional[str]:
-    """Normalize phone number to international format"""
     if not phone:
         return None
 
@@ -82,7 +96,6 @@ def normalize_phone(phone: str, country: str = None, config: Dict = None) -> Opt
     return None
 
 def clean_name_and_extract_title(name: str, config: Dict) -> Tuple[str, Optional[str]]:
-    """Remove professional prefixes and return clean name + inferred title"""
     if not name or not isinstance(name, str):
         return "", None
     
@@ -117,7 +130,6 @@ def clean_name_and_extract_title(name: str, config: Dict) -> Tuple[str, Optional
     return name, None
 
 def process_names(first_name: str, last_name: str, full_name: str, config: Dict) -> Dict:
-    """Process and clean all name fields"""
     result = {'first_name': None, 'last_name': None, 'full_name': None, 'inferred_title': None}
     
     if full_name and str(full_name).strip():
@@ -150,7 +162,6 @@ def process_names(first_name: str, last_name: str, full_name: str, config: Dict)
     return result
 
 def infer_title_from_name(name: str, current_title: str, config: Dict) -> Optional[str]:
-    """Infer title from name patterns if current title is null"""
     if current_title and str(current_title).strip():
         return current_title
     
@@ -170,8 +181,27 @@ def infer_title_from_name(name: str, current_title: str, config: Dict) -> Option
     
     return None
 
+def clean_job_title(title: str) -> str:
+    if not title or not isinstance(title, str):
+        return None
+    
+    title = title.strip()
+    if not title:
+        return None
+    
+    title = title.split(' at ')[0]
+    title = title.split(' |')[0]
+    title = title.split('|')[0]
+    title = re.sub(r'\([^)]*\)', '', title)
+    title = re.sub(r'\[[^\]]*\]', '', title)
+    title = re.sub(r'\s+', ' ', title).strip()
+    
+    if not title:
+        return None
+    
+    return title
+
 def clean_company_name(company: str, config: Dict) -> str:
-    """Clean company name for matching"""
     if not company:
         return ""
     
@@ -192,29 +222,71 @@ def clean_company_name(company: str, config: Dict) -> str:
     return re.sub(r'\s+', ' ', company.strip())
 
 def normalize_name_for_matching(name: str) -> str:
-    """Normalize name for exact matching"""
     if not name:
         return ""
     return re.sub(r'\s+', ' ', str(name).strip().lower())
 
 def is_valid_person_record(first_name: str, last_name: str, full_name: str) -> bool:
-    """Check if person has at least one valid name field"""
     return any([
         first_name and str(first_name).strip(),
         last_name and str(last_name).strip(),
         full_name and str(full_name).strip()
     ])
 
-def exact_person_match(rec1: Dict, rec2: Dict, config: Dict) -> bool:
-    """EXACT matching logic: name + company must match exactly"""
-    name1 = rec1.get('full_name')
-    name2 = rec2.get('full_name')
+def extract_company_info_from_rolodex(record: Dict) -> Dict:
+    companies = record.get('companies', [])
+    if not companies:
+        return {'Company name': None, 'Company_Id': None, 'works_at_multiple': 'no'}
     
+    company_names = [c.get('name') for c in companies if c.get('name')]
+    company_ids = [c.get('id') for c in companies if c.get('id')]
+    
+    name_str = ', '.join(company_names) if company_names else None
+    id_str = ', '.join(company_ids) if company_ids else None
+    multiple = 'yes' if len(company_names) > 1 else 'no'
+    
+    return {
+        'Company name': name_str,
+        'Company_Id': id_str,
+        'works_at_multiple': multiple
+    }
+
+def get_all_companies(rec: Dict, config: Dict) -> set:
+    companies = set()
+    if rec['Company name']:
+        for name in rec['Company name'].split(', '):
+            cleaned = clean_company_name(name, config)
+            if cleaned:
+                companies.add(cleaned)
+    return companies
+
+def exact_person_match(rec1: Dict, rec2: Dict, config: Dict) -> bool:
+    # Check rolodex_contact_id match
+    id1 = rec1.get('rolodex_contact_id')
+    id2 = rec2.get('rolodex_contact_id')
+    if id1 and id2 and id1 == id2:
+        return True
+    
+    # Check email match
+    email1 = rec1.get('email')
+    email2 = rec2.get('email')
+    if email1 and email2 and email1.lower() == email2.lower():
+        return True
+    
+    # Check mobile match
+    mobile1 = rec1.get('mobile')
+    mobile2 = rec2.get('mobile')
+    if mobile1 and mobile2 and mobile1 == mobile2:
+        return True
+    
+    # Check normalized name and overlapping companies
+    name1 = rec1.get('full_name')
     if not name1:
         first1 = rec1.get('first_name') or ''
         last1 = rec1.get('last_name') or ''
         name1 = f"{first1} {last1}".strip()
     
+    name2 = rec2.get('full_name')
     if not name2:
         first2 = rec2.get('first_name') or ''
         last2 = rec2.get('last_name') or ''
@@ -229,19 +301,15 @@ def exact_person_match(rec1: Dict, rec2: Dict, config: Dict) -> bool:
     if norm_name1 != norm_name2:
         return False
     
-    company1 = rec1.get('Company name')
-    company2 = rec2.get('Company name')
+    companies1 = get_all_companies(rec1, config)
+    companies2 = get_all_companies(rec2, config)
     
-    if not company1 or not company2:
-        return False
+    if companies1 & companies2:
+        return True
     
-    clean_company1 = clean_company_name(company1, config)
-    clean_company2 = clean_company_name(company2, config)
-    
-    return clean_company1 == clean_company2
+    return False
 
 def find_matches(records: List[Dict], config: Dict) -> List[List[Dict]]:
-    """Find exact matches within records"""
     match_groups = []
     used_indices = set()
     
@@ -266,61 +334,89 @@ def find_matches(records: List[Dict], config: Dict) -> List[List[Dict]]:
     return match_groups
 
 def merge_records(records: List[Dict]) -> Dict:
-    """Merge multiple records, preferring non-null values"""
     if len(records) == 1:
         return records[0]
     
     merged = records[0].copy()
-    sources = [r['data_source'] for r in records]
-    merged['data_source'] = '+'.join(sources)
+    sources = set(r['data_source'] for r in records)
+    merged['data_source'] = '+'.join(sorted(sources))
     
+    # Merge ID fields
     for record in records[1:]:
         for key, value in record.items():
             if key.endswith('_id') and value and not merged.get(key):
                 merged[key] = value
     
+    # Merge other fields, prefer non-null
     for record in records[1:]:
         for field, value in record.items():
-            if field in ['person_id', 'data_source'] or field.endswith('_id'):
+            if field in ['person_id', 'data_source'] or field.endswith('_id') or field in ['Company name', 'Company_Id', 'works_at_multiple']:
                 continue
             if merged.get(field) is None and value is not None:
                 merged[field] = value
     
+    # Merge companies
+    all_names = set()
+    all_ids = set()
+    for record in records:
+        if record['Company name']:
+            for name in record['Company name'].split(', '):
+                if name.strip():
+                    all_names.add(name.strip())
+        if record['Company_Id']:
+            for cid in record['Company_Id'].split(', '):
+                if cid.strip():
+                    all_ids.add(cid.strip())
+    
+    merged['Company name'] = ', '.join(sorted(all_names)) if all_names else None
+    merged['Company_Id'] = ', '.join(sorted(all_ids)) if all_ids else None
+    merged['works_at_multiple'] = 'yes' if len(all_names) > 1 else 'no'
+    
     return merged
 
 def load_data(file_path: str) -> List[Dict]:
-    """Load JSON data"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return data if isinstance(data, list) else data.get('data', [])
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Error loading {file_path}: {e}")
+    except:
         return []
 
-def load_mapper() -> Dict:
-    """Load field mappings"""
-    mapper_path = r"C:\Projects\Junior AI Engineer Task\schema_design\mapper\unified_Personnel_mapper.json"
+def load_mapper(base_dir: str) -> Dict:
+    mapper_path = os.path.join(base_dir, "mapper", "unified_Personnel_mapper.json")
     try:
         with open(mapper_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
         return data["Unified_Personnel"]["columns"]
-    except (FileNotFoundError, KeyError) as e:
+    except FileNotFoundError as e:
+        print(f"Error: Mapper file not found at {mapper_path}")
+        return {}
+    except KeyError as e:
+        print(f"Error: Missing key in mapper file - {e}")
+        return {}
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in mapper file - {e}")
+        return {}
+    except Exception as e:
         print(f"Error loading mapper: {e}")
         return {}
 
 def create_unified_record(raw_record: Dict, mappings: Dict, source_config: Dict, config: Dict) -> Optional[Dict]:
-    """Convert raw record to unified format"""
     source_name = source_config['name']
     
     unified = {
         'person_id': str(uuid.uuid4()),
         'data_source': source_name,
-        f"{source_name.lower().replace('bigin', '_bigin')}_id": str(raw_record.get('id', ''))
     }
     
+    if source_name == 'Rolodex':
+        unified['rolodex_id'] = str(raw_record.get('id', ''))
+    elif 'Bigin' in source_name:
+        bigin_key = f"{source_name.lower().replace('bigin', '_bigin')}_id"
+        unified[bigin_key] = str(raw_record.get('id', ''))
+    
     for field, mapping in mappings.items():
-        if field in ['person_id', 'data_source']:
+        if field in ['person_id', 'data_source', 'Company name', 'Company_Id', 'works_at_multiple']:
             continue
         
         path = mapping.get(source_name)
@@ -334,6 +430,25 @@ def create_unified_record(raw_record: Dict, mappings: Dict, source_config: Dict,
             
             unified[field] = safe_get_value(raw_record, clean_path)
     
+    if source_name == 'Rolodex':
+        company_info = extract_company_info_from_rolodex(raw_record)
+        unified['Company name'] = company_info['Company name']
+        unified['Company_Id'] = company_info['Company_Id']
+        unified['works_at_multiple'] = company_info['works_at_multiple']
+    else:
+        account_name = safe_get_value(raw_record, 'Account_Name')
+        name_str = None
+        id_str = None
+        multiple = 'no'
+        if isinstance(account_name, dict):
+            name_str = account_name.get('name')
+            id_str = account_name.get('id')
+        else:
+            name_str = account_name
+        unified['Company name'] = name_str
+        unified['Company_Id'] = id_str
+        unified['works_at_multiple'] = multiple
+    
     name_result = process_names(
         unified.get('first_name', ''),
         unified.get('last_name', ''),
@@ -342,7 +457,7 @@ def create_unified_record(raw_record: Dict, mappings: Dict, source_config: Dict,
     )
     
     unified['first_name'] = name_result['first_name']
-    unified['last_name'] = name_result['last_name'] 
+    unified['last_name'] = name_result['last_name']
     unified['full_name'] = name_result['full_name']
     
     current_title = unified.get('title')
@@ -353,6 +468,9 @@ def create_unified_record(raw_record: Dict, mappings: Dict, source_config: Dict,
         inferred_title = infer_title_from_name(combined_name, current_title, config)
         if inferred_title:
             unified['title'] = inferred_title
+    
+    if unified.get('title'):
+        unified['title'] = clean_job_title(unified['title'])
     
     if not is_valid_person_record(
         unified.get('first_name'), 
@@ -370,10 +488,10 @@ def create_unified_record(raw_record: Dict, mappings: Dict, source_config: Dict,
     return unified
 
 def main():
-    base_dir = r"C:\Projects\Junior AI Engineer Task\schema_design"
+    base_dir = r"C:\Projects\Junior AI Engineer Task\Task_Assignment\schema_design"
     
-    config = load_config()
-    mappings = load_mapper()
+    config = load_config(base_dir)
+    mappings = load_mapper(base_dir)
     
     if not mappings:
         print("Error: Could not load mappings")
@@ -384,12 +502,13 @@ def main():
     sources = [
         {'name': 'ColourcoatsBigin', 'type': 'bigin', 'dir': 'ColourCoatsBigin', 'file': 'Contacts.json'},
         {'name': 'MetaliaBigin', 'type': 'bigin', 'dir': 'MetaliaBigin', 'file': 'Contacts.json'},
-        {'name': 'Rolodex', 'type': 'rolodex', 'dir': 'Rolodex', 'file': 'contacts.json'}
+        {'name': 'Rolodex', 'type': 'rolodex', 'dir': 'Rolodex_data', 'file': 'contacts.json'}
     ]
     
     all_records = []
     for source in sources:
         print(f"Processing {source['name']}...")
+        
         file_path = os.path.join(base_dir, "Raw_Data", source['dir'], source['file'])
         raw_data = load_data(file_path)
         
@@ -427,13 +546,9 @@ def main():
     print(f"Final unified records: {len(final_records)}")
     
     expected_columns = list(mappings.keys())
-    source_id_columns = []
-    for source in sources:
-        source_id_field = f"{source['name'].lower().replace('bigin', '_bigin')}_id"
-        if source_id_field not in expected_columns:
-            source_id_columns.append(source_id_field)
+    source_id_columns = ['rolodex_id', 'colourcoats_bigin_id', 'metalia_bigin_id']
     
-    final_columns = expected_columns + source_id_columns
+    final_columns = expected_columns + [col for col in source_id_columns if col not in expected_columns]
     
     df = pd.DataFrame(final_records)
     for col in final_columns:
@@ -444,6 +559,7 @@ def main():
     df = df.sort_values(['data_source', 'full_name'], na_position='last')
     
     output_path = os.path.join(base_dir, "unified_personnel.csv")
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
     df.to_csv(output_path, index=False)
     print(f"Saved {len(df)} unified records to unified_personnel.csv")
 

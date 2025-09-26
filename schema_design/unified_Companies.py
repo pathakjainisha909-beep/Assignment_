@@ -5,19 +5,10 @@ import uuid
 from typing import Dict, List, Any, Optional, Tuple
 import re
 
-def safe_get_value(record: Dict[str, Any], path: str | List[str]) -> Optional[Any]:
-    """Safely extract value from nested dictionary"""
+def safe_get_value(record: Dict[str, Any], path: str) -> Optional[Any]:
     if not path or not record:
         return None
     try:
-        if isinstance(path, list):
-            values = []
-            for p in path:
-                val = safe_get_value(record, p)
-                if val:
-                    values.append(str(val))
-            return ' '.join(values) if values else None
-
         if '.split' in path:
             base_path, op = path.split('.split', 1)
             value = safe_get_value(record, base_path)
@@ -38,11 +29,10 @@ def safe_get_value(record: Dict[str, Any], path: str | List[str]) -> Optional[An
                 else:
                     return None
             return current if current not in [None, '', []] else None
-    except (KeyError, TypeError, AttributeError, IndexError, ValueError):
+    except:
         return None
 
 def normalize_company_name(name: str) -> str:
-    """Normalize company name for matching"""
     if not name:
         return ""
     name = re.sub(r'\s+', ' ', name.lower().strip())
@@ -55,7 +45,6 @@ def normalize_company_name(name: str) -> str:
     return re.sub(r'\s+', ' ', name.strip())
 
 def exact_normalized_company_match(rec1: Dict, rec2: Dict) -> bool:
-    """Check if two companies match after normalization"""
     name1 = rec1.get('company_name')
     name2 = rec2.get('company_name')
     if not name1 or not name2:
@@ -63,7 +52,6 @@ def exact_normalized_company_match(rec1: Dict, rec2: Dict) -> bool:
     return normalize_company_name(name1) == normalize_company_name(name2)
 
 def load_data_file(file_path: str) -> List[Dict[str, Any]]:
-    """Load JSON data file"""
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -73,26 +61,23 @@ def load_data_file(file_path: str) -> List[Dict[str, Any]]:
             return data['data']
         else:
             return []
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-        print(f"Error loading {file_path}: {e}")
+    except:
         return []
 
-def find_matches(list1: List[Dict], list2: List[Dict], match_func) -> List[Tuple[int, int]]:
-    """Find matches between two lists"""
+def find_matches(list1: List[Dict], list2: List[Dict]) -> List[Tuple[int, int]]:
     matches = []
     used2 = set()
     for i, rec1 in enumerate(list1):
         for j, rec2 in enumerate(list2):
             if j in used2:
                 continue
-            if match_func(rec1, rec2):
+            if exact_normalized_company_match(rec1, rec2):
                 matches.append((i, j))
                 used2.add(j)
                 break
     return matches
 
 def merge_records(rec1: Dict, rec2: Dict, id_keys: List[str]) -> Dict:
-    """Merge two records, preferring non-null values"""
     merged = rec1.copy()
     merged['data_source'] = f"{rec1['data_source']}+{rec2['data_source']}"
     
@@ -108,17 +93,18 @@ def merge_records(rec1: Dict, rec2: Dict, id_keys: List[str]) -> Dict:
     return merged
 
 def create_unified_company(record: Dict, mappings: Dict, source_config: Dict) -> Dict:
-    """Create unified company from source record"""
     source_name = source_config['name']
-    source_type = source_config['type']
     
     unified = {
         'company_id': str(uuid.uuid4()),
         'data_source': source_name,
     }
     
-    id_key = f"{source_name.lower().replace('bigin', '_bigin')}_id"
-    unified[id_key] = str(safe_get_value(record, 'id')) or None
+    if source_name == 'Rolodex':
+        unified['rolodex_id'] = str(safe_get_value(record, 'id'))
+    elif 'Bigin' in source_name:
+        bigin_key = f"{source_name.lower().replace('bigin', '_bigin')}_id"
+        unified[bigin_key] = str(safe_get_value(record, 'id'))
     
     for field, mapping in mappings.items():
         if field in ['company_id', 'data_source']:
@@ -128,8 +114,10 @@ def create_unified_company(record: Dict, mappings: Dict, source_config: Dict) ->
         value = None
         
         if path:
-            if isinstance(path, str):
-                clean_path = path.replace('Accounts.', '') if source_type == 'bigin' else path.replace('companies.', '')
+            if source_name == 'Rolodex':
+                clean_path = path.replace('companies.', '') if 'companies.' in path else path
+            elif 'Bigin' in source_name:
+                clean_path = path.replace('Accounts.', '') if 'Accounts.' in path else path
             else:
                 clean_path = path
             value = safe_get_value(record, clean_path)
@@ -138,13 +126,12 @@ def create_unified_company(record: Dict, mappings: Dict, source_config: Dict) ->
     return unified
 
 def chain_merge(group_lists: List[Tuple[str, List[Dict]]], id_keys: List[str]) -> List[Dict]:
-    """Chain merge multiple lists within a group"""
     if not group_lists:
         return []
     
     current = group_lists[0][1]
     for _, next_list in group_lists[1:]:
-        matches = find_matches(current, next_list, exact_normalized_company_match)
+        matches = find_matches(current, next_list)
         new_current = []
         matched_next = set()
         
@@ -168,20 +155,28 @@ def chain_merge(group_lists: List[Tuple[str, List[Dict]]], id_keys: List[str]) -
     return current
 
 def unify_companies(source_configs: List[Dict]):
-    """Unify companies from multiple sources"""
-    base_dir = r"C:\Projects\Junior AI Engineer Task\schema_design"
+    base_dir = r"C:\Projects\Junior AI Engineer Task\Task_assignment\schema_design"
     mapper_path = os.path.join(base_dir, "mapper", "Unified_Companies_mapper.json")
     
     try:
         with open(mapper_path, 'r', encoding='utf-8') as f:
             mappings_data = json.load(f)
         mappings = mappings_data["Unified_Companies"]["columns"]
-    except (FileNotFoundError, json.JSONDecodeError, KeyError) as e:
+    except FileNotFoundError as e:
+        print(f"Error: Mapper file not found at {mapper_path}")
+        return
+    except KeyError as e:
+        print(f"Error: Missing key in mapper file - {e}")
+        return
+    except json.JSONDecodeError as e:
+        print(f"Error: Invalid JSON in mapper file - {e}")
+        return
+    except Exception as e:
         print(f"Error loading mapper: {e}")
         return
 
     print("Processing company data sources...")
-    all_id_keys = [f"{config['name'].lower().replace('bigin', '_bigin')}_id" for config in source_configs]
+    all_id_keys = ['rolodex_id', 'colourcoats_bigin_id', 'metalia_bigin_id']
     ordered_types = ['bigin', 'rolodex']
     combined = None
     total_records = 0
@@ -205,7 +200,7 @@ def unify_companies(source_configs: List[Dict]):
         if combined is None:
             combined = combined_type
         else:
-            matches = find_matches(combined, combined_type, exact_normalized_company_match)
+            matches = find_matches(combined, combined_type)
             new_combined = []
             matched_type = set()
             
@@ -243,13 +238,11 @@ def unify_companies(source_configs: List[Dict]):
         df.to_csv(output_path, index=False)
         print(f"Saved {len(df)} unified company records to {output_path}")
         print(f"Processed {total_records} total records with {len(df)} final unified records")
-    else:
-        print("No data to save")
 
 if __name__ == "__main__":
     source_configs = [
         {'name': 'ColourcoatsBigin', 'type': 'bigin', 'dir': 'ColourCoatsBigin', 'file': 'Accounts.json'},
         {'name': 'MetaliaBigin', 'type': 'bigin', 'dir': 'MetaliaBigin', 'file': 'Accounts.json'},
-        {'name': 'Rolodex', 'type': 'rolodex', 'dir': 'Rolodex', 'file': 'companies.json'},
+        {'name': 'Rolodex', 'type': 'rolodex', 'dir': 'Rolodex_data', 'file': 'companies.json'},
     ]
     unify_companies(source_configs)
