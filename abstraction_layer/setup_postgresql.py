@@ -46,7 +46,7 @@ def discover_csv_files():
         files = glob.glob(os.path.join(CSV_FOLDER, pattern))
         csv_files.extend(files)
     
-    # Remove duplicates and sort
+    
     csv_files = sorted(list(set(csv_files)))
     
     print(f"Discovered CSV files:")
@@ -60,11 +60,11 @@ def generate_table_name(csv_path):
     """Generate a clean table name from CSV filename"""
     filename = os.path.splitext(os.path.basename(csv_path))[0]
     
-    # Check if we have a custom mapping
+ 
     if filename in TABLE_NAME_MAPPINGS:
         return TABLE_NAME_MAPPINGS[filename]
     
-    # Clean filename to create table name
+ 
     table_name = filename.lower()
     table_name = re.sub(r'[^a-z0-9_]', '_', table_name)
     table_name = re.sub(r'_+', '_', table_name)
@@ -82,13 +82,13 @@ def generate_table_name(csv_path):
 def analyze_csv_structure(csv_path):
     """Analyze CSV structure and determine optimal column types"""
     try:
-        # Read sample of the CSV
+      
         df_sample = pd.read_csv(csv_path, nrows=100)
         
         columns_info = {}
         
         for col in df_sample.columns:
-            # Clean column name
+        
             clean_col = col.lower().replace(' ', '_').replace('-', '_')
             clean_col = re.sub(r'[^a-z0-9_]', '_', clean_col)
             clean_col = re.sub(r'_+', '_', clean_col).strip('_')
@@ -124,10 +124,8 @@ def create_table_from_csv_structure(conn, table_name, columns_info):
     try:
         cursor = conn.cursor()
         
-        # Drop table if exists
         cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE;")
         
-        # Build CREATE TABLE statement
         column_definitions = []
         for col_name, info in columns_info.items():
             column_definitions.append(f"{col_name} {info['type']}")
@@ -159,27 +157,21 @@ def clean_and_import_csv(conn, csv_path, table_name, columns_info):
     try:
         print(f"Importing data from {os.path.basename(csv_path)} to {table_name}")
         
-        # Read full CSV
         df = pd.read_csv(csv_path)
         print(f"Loaded {len(df)} rows")
         
-        # Clean data
         df = df.astype(str).replace(['nan', 'NaN', 'None', '<NA>', 'null', ''], None)
         
-        # Map original column names to database column names
         column_mapping = {info['original_name']: col_name for col_name, info in columns_info.items()}
         df_clean = df.rename(columns=column_mapping)
         
-        # Select only columns that exist in our table
         available_columns = [col for col in columns_info.keys() if col in df_clean.columns]
         df_final = df_clean[available_columns]
         
-        # Prepare insert statement
         placeholders = ', '.join(['%s'] * len(available_columns))
         columns_str = ', '.join(available_columns)
         insert_sql = f"INSERT INTO {table_name} ({columns_str}) VALUES ({placeholders})"
         
-        # Convert to tuples for batch insert
         data_tuples = []
         for _, row in df_final.iterrows():
             tuple_data = []
@@ -190,7 +182,6 @@ def clean_and_import_csv(conn, csv_path, table_name, columns_info):
                     tuple_data.append(str(val))
             data_tuples.append(tuple(tuple_data))
         
-        # Batch insert
         cursor = conn.cursor()
         batch_size = 100
         total_imported = 0
@@ -240,14 +231,13 @@ def create_smart_indexes(conn, table_name, columns_info):
                 if any(keyword in col_name.lower() for keyword in keywords):
                     matching_columns.append(col_name)
             
-            # Create indexes for matching columns
             for col in matching_columns:
                 index_name = f"idx_{table_name}_{col}"
                 try:
                     cursor.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({col});")
                     indexes_created.append(index_name)
                 except:
-                    pass  # Skip if index creation fails
+                    pass  
         
         conn.commit()
         cursor.close()
@@ -307,7 +297,6 @@ def main():
         return
     
     try:
-        # Discover all CSV files
         csv_files = discover_csv_files()
         
         if not csv_files:
@@ -316,31 +305,25 @@ def main():
         
         print(f"\nProcessing {len(csv_files)} CSV files...")
         
-        # Process each CSV file
         for csv_path in csv_files:
             filename = os.path.basename(csv_path)
             print(f"\nProcessing: {filename}")
             
-            # Generate table name
             table_name = generate_table_name(csv_path)
             print(f"Table name: {table_name}")
             
-            # Analyze CSV structure
             columns_info = analyze_csv_structure(csv_path)
             if not columns_info:
                 print(f"Skipping {filename} - could not analyze structure")
                 continue
             
-            # Create table
             if create_table_from_csv_structure(conn, table_name, columns_info):
                 # Import data
                 imported_count = clean_and_import_csv(conn, csv_path, table_name, columns_info)
                 
                 if imported_count > 0:
-                    # Create indexes
                     create_smart_indexes(conn, table_name, columns_info)
         
-        # Final verification
         print("\n" + "=" * 50)
         print("MIGRATION SUMMARY:")
         print("=" * 50)
