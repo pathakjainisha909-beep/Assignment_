@@ -23,7 +23,7 @@ This repository contains three main components:
 
 ### Backend Setup
 1. **Clone the Repository**:
-  git clone https://github.com/pathakjainisha909-beep/Task_Assignment.git
+  git clone [https://github.com/pathakjainisha909-beep/Task_Assignment.git](https://github.com/pathakjainisha909-beep/Assignment_.git)
 
 ## schema_design
 
