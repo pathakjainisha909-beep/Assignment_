@@ -1,0 +1,240 @@
+{
+  "Unified_Personnel": {
+    "columns": {
+      "person_id": {
+        "type": "string",
+        "description": "System generated UUID",
+        "ColourcoatsBigin": "system generated",
+        "MetaliaBigin": "system generated",
+        "Rolodex": "system generated"
+      },
+      "data_source": {
+        "type": "string",
+        "description": "Source system(s): Rolodex, ColourcoatsBigin, MetaliaBigin, or combinations",
+        "ColourcoatsBigin": "system generated",
+        "MetaliaBigin": "system generated",
+        "Rolodex": "system generated"
+      },
+      "rolodex_id": {
+        "type": "string",
+        "description": "Rolodex contact ID - master key for cross-system matching",
+        "ColourcoatsBigin": "Rolodex_Contact_ID",
+        "MetaliaBigin": null,
+        "Rolodex": "id"
+      },
+      "colourcoats_bigin_id": {
+        "type": "string",
+        "description": "ColourCoats Bigin contact ID",
+        "ColourcoatsBigin": "id",
+        "MetaliaBigin": null,
+        "Rolodex": null
+      },
+      "metalia_bigin_id": {
+        "type": "string",
+        "description": "Metalia Bigin contact ID",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": "id",
+        "Rolodex": null
+      },
+      "workspace_id": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "workspace_id"
+      },
+      "first_name": {
+        "type": "string",
+        "ColourcoatsBigin": "First_Name",
+        "MetaliaBigin": "First_Name",
+        "Rolodex": "first_name"
+      },
+      "last_name": {
+        "type": "string",
+        "ColourcoatsBigin": "Last_Name",
+        "MetaliaBigin": "Last_Name",
+        "Rolodex": "last_name"
+      },
+      "full_name": {
+        "type": "string",
+        "ColourcoatsBigin": "Full_Name",
+        "MetaliaBigin": "Full_Name",
+        "Rolodex": "full_name"
+      },
+      "title": {
+        "type": "string",
+        "description": "General job title/designation",
+        "ColourcoatsBigin": "Title",
+        "MetaliaBigin": "Title",
+        "Rolodex": "title"
+      },
+      "email": {
+        "type": "string",
+        "ColourcoatsBigin": "Email",
+        "MetaliaBigin": "Email",
+        "Rolodex": "emails[0].email_address"
+      },
+      "all_emails": {
+        "type": "array",
+        "description": "All emails if multiple, empty array otherwise",
+        "ColourcoatsBigin": "computed",
+        "MetaliaBigin": "computed",
+        "Rolodex": "emails[*].email_address"
+      },
+      "mobile": {
+        "type": "string",
+        "ColourcoatsBigin": "Mobile",
+        "MetaliaBigin": "Mobile",
+        "Rolodex": "phone_numbers[0].phone_number"
+      },
+      "alternate_mobile": {
+        "type": "string",
+        "ColourcoatsBigin": "Alternate_Mobile",
+        "MetaliaBigin": "Alternate_Mobile",
+        "Rolodex": "phone_numbers[1].phone_number"
+      },
+      "all_phones": {
+        "type": "array",
+        "description": "All phone numbers",
+        "ColourcoatsBigin": "computed",
+        "MetaliaBigin": "computed",
+        "Rolodex": "phone_numbers[*].phone_number"
+      },
+      "photo_url": {
+        "type": "string",
+        "ColourcoatsBigin": "Record_Image",
+        "MetaliaBigin": "Record_Image",
+        "Rolodex": "image_url"
+      },
+      "linkedin_profile": {
+        "type": "string",
+        "ColourcoatsBigin": "LinkedIn_Profile",
+        "MetaliaBigin": "LinkedIn_Profile",
+        "Rolodex": null
+      },
+      "linkedin_slug": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "linkedin_slug"
+      },
+      "facebook_slug": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "facebook_slug"
+      },
+      "instagram_slug": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "instagram_slug"
+      },
+      "youtube_slug": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "youtube_slug"
+      },
+      "x_slug": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "x_slug"
+      },
+      "website_url": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "website_url"
+      },
+      "manager_id": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "manager_id"
+      },
+      "city": {
+        "type": "string",
+        "ColourcoatsBigin": "Mailing_City",
+        "MetaliaBigin": "Mailing_City",
+        "Rolodex": "location.split(', ')[0]"
+      },
+      "state": {
+        "type": "string",
+        "ColourcoatsBigin": "Mailing_State",
+        "MetaliaBigin": "Mailing_State",
+        "Rolodex": "location.split(', ')[1]"
+      },
+      "country": {
+        "type": "string",
+        "ColourcoatsBigin": "Mailing_Country",
+        "MetaliaBigin": "Mailing_Country",
+        "Rolodex": "location.split(', ')[2]"
+      },
+      "department": {
+        "type": "string",
+        "ColourcoatsBigin": "Department",
+        "MetaliaBigin": "Department",
+        "Rolodex": null
+      },
+      "contact_type": {
+        "type": "string",
+        "ColourcoatsBigin": "Contact_type",
+        "MetaliaBigin": "Contact_Type",
+        "Rolodex": null
+      },
+      "description": {
+        "type": "string",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": "Description",
+        "Rolodex": "description"
+      }
+    }
+  },
+  "Person_Companies": {
+    "description": "Normalized relationship table linking people to companies",
+    "columns": {
+      "relationship_id": {
+        "type": "string",
+        "description": "System generated UUID for this relationship"
+      },
+      "person_id": {
+        "type": "string",
+        "description": "Foreign key to unified_personnel.person_id"
+      },
+      "company_id": {
+        "type": "string",
+        "description": "Company ID from source system"
+      },
+      "company_name": {
+        "type": "string",
+        "description": "Company name"
+      },
+      "is_active": {
+        "type": "boolean",
+        "description": "Whether person currently works at this company (Rolodex only)",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies[*].is_active"
+      },
+      "start_date": {
+        "type": "string",
+        "description": "When person started at this company (Rolodex only)",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies[*].start_date"
+      },
+      "title_at_company": {
+        "type": "string",
+        "description": "Job title at this specific company (Rolodex only)",
+        "ColourcoatsBigin": null,
+        "MetaliaBigin": null,
+        "Rolodex": "companies[*].title"
+      },
+      "data_source": {
+        "type": "string",
+        "description": "Source system where this relationship was found"
+      }
+    }
+  }
+}

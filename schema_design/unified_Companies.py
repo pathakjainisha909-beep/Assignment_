@@ -233,7 +233,7 @@ def unify_companies(source_configs: List[Dict]):
         print(f"Saved {len(df)} unified company records to {output_path}")
         print(f"Processed {total_records} total records with {len(df)} final unified records")
         
-        # Print some stats about matches
+        
         rolodex_matches = sum(1 for rec in combined if rec.get('rolodex_company_id') and '+' in str(rec.get('data_source', '')))
         print(f"Found {rolodex_matches} companies with matching Rolodex IDs across systems")
 

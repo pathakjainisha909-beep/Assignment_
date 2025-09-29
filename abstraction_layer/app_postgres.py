@@ -14,16 +14,10 @@ import sqlparse
 import logging
 from fastapi.middleware.cors import CORSMiddleware
 
-# ----------------------------------------------------------------------
-# Setup Logging
-# ----------------------------------------------------------------------
 logging.basicConfig(level=logging.INFO, filename='query_api.log', filemode='a',
                     format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
-# ----------------------------------------------------------------------
-# Load environment variables and initialize API keys
-# ----------------------------------------------------------------------
 load_dotenv()
 API_KEY = os.getenv("GOOGLE_API_KEY")
 if not API_KEY:
@@ -44,30 +38,22 @@ except Exception as e:
     logger.error(f"Failed to configure Gemini API: {str(e)}")
     raise ValueError(f"Failed to configure Gemini API: {str(e)}")
 
-# Load local embedding model
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
 
-# ----------------------------------------------------------------------
-# Initialize FastAPI app
-# ----------------------------------------------------------------------
 app = FastAPI(
-    title="Dynamic AI SQL Query API",
-    description="Extensible natural language to SQL system - works with unified_personnel and unified_companies",
-    version="3.2.0"
+    title="Normalized CRM Query API",
+    description="Natural language SQL with proper JOIN handling for normalized Personnel/Companies schema",
+    version="4.0.0"
 )
-
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Add your frontend origins here, or use ["*"] for development
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# ----------------------------------------------------------------------
-# Request/Response Models
-# ----------------------------------------------------------------------
 class QueryRequest(BaseModel):
     question: str
     include_raw_data: Optional[bool] = False
@@ -86,11 +72,7 @@ class DatabaseInfo(BaseModel):
     tables: Dict[str, dict]
     total_records: int
 
-# ----------------------------------------------------------------------
-# Database Connection
-# ----------------------------------------------------------------------
 def get_db_connection():
-    """Get a PostgreSQL connection using environment config"""
     try:
         conn = psycopg2.connect(**DB_CONFIG)
         return conn
@@ -98,12 +80,8 @@ def get_db_connection():
         logger.error(f"Database connection failed: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
-# ----------------------------------------------------------------------
-# Dynamic Table Discovery (Cached)
-# ----------------------------------------------------------------------
 @lru_cache(maxsize=1)
 def discover_all_tables():
-    """Discover tables in the connected database schema with column info and sample data"""
     logger.info("Discovering database tables")
     conn = get_db_connection()
     try:
@@ -130,15 +108,26 @@ def discover_all_tables():
             cursor.execute(f"SELECT COUNT(*) FROM {table}")
             record_count = cursor.fetchone()[0]
             sample_data = {}
-            for col_name, _, _ in columns[:10]:
+            for col_name, data_type, _ in columns[:10]:
                 try:
-                    cursor.execute(f"""
-                        SELECT DISTINCT {col_name} 
-                        FROM {table} 
-                        WHERE {col_name} IS NOT NULL 
-                        AND {col_name} != '' 
-                        LIMIT 3
-                    """)
+                    # Handle different data types for sample data query
+                    if data_type.lower() == 'boolean':
+                        # For boolean columns, just check NOT NULL
+                        cursor.execute(f"""
+                            SELECT DISTINCT {col_name} 
+                            FROM {table} 
+                            WHERE {col_name} IS NOT NULL 
+                            LIMIT 3
+                        """)
+                    else:
+                        # For text/other columns, exclude empty strings
+                        cursor.execute(f"""
+                            SELECT DISTINCT {col_name} 
+                            FROM {table} 
+                            WHERE {col_name} IS NOT NULL 
+                            AND {col_name}::text != '' 
+                            LIMIT 3
+                        """)
                     examples = [str(row[0]) for row in cursor.fetchall()]
                     sample_data[col_name] = examples
                 except Exception as e:
@@ -158,21 +147,16 @@ def discover_all_tables():
         logger.error(f"Error discovering tables: {str(e)}")
         raise Exception(f"Error discovering tables: {str(e)}")
 
-# ----------------------------------------------------------------------
-# Explicit Schema Definitions
-# ----------------------------------------------------------------------
+# NORMALIZED SCHEMA DEFINITIONS
 TABLE_COLUMN_DEFINITIONS = {
     'unified_personnel': {
-        'description': 'People/contacts data - employees, architects, managers, clients',
+        'description': 'People/contacts - employees, architects, managers, clients. NO company fields here.',
         'columns': {
-            'person_id': 'Unique person identifier',
+            'person_id': 'Unique person identifier (PRIMARY KEY)',
             'first_name': 'Person first name',
             'last_name': 'Person last name',
             'full_name': 'Person full name',
-            'title': 'Job title/role (architect, project manager, etc)',
-            'company_name': 'Associated company name',
-            'company_id': 'Associated company identifier',
-            'works_at_multiple': 'Array of company names if multiple, "No" if one, null if none',
+            'title': 'Job title/role (architect, project manager, designer, etc)',
             'contact_type': 'Type of contact (client, employee, etc)',
             'department': 'Work department',
             'manager_id': 'Manager identifier',
@@ -182,27 +166,31 @@ TABLE_COLUMN_DEFINITIONS = {
             'mobile': 'Mobile phone number',
             'email': 'Email address',
             'alternate_mobile': 'Alternative phone number',
-            'data_source': 'Data source system',
-            'workspace_id': 'Workspace identifier',
+            'data_source': 'Data source system (Rolodex, ColourcoatsBigin, MetaliaBigin)',
             'rolodex_id': 'Rolodex system ID',
-            'rolodex_contact_id': 'Rolodex contact ID',
-            'rolodex_company_id': 'Rolodex company ID',
-            'interakt_contact_id': 'Interakt contact ID',
             'colourcoats_bigin_id': 'Colourcoats Bigin ID',
             'metalia_bigin_id': 'Metalia Bigin ID',
-            'photo_url': 'Profile photo URL',
-            'business_card_image_url': 'Business card image URL',
             'linkedin_profile': 'LinkedIn profile URL',
-            'linkedin_slug': 'LinkedIn profile slug',
-            'facebook_slug': 'Facebook profile slug',
-            'instagram_slug': 'Instagram profile slug',
-            'x_slug': 'X/Twitter profile slug',
-            'youtube_slug': 'YouTube profile slug',
-            'website_url': 'Personal website URL',
-            'birthday_day': 'Birth day',
-            'birthday_month': 'Birth month',
-            'birthday_year': 'Birth year',
-            'description': 'Additional description/notes'
+            'linkedin_slug': 'LinkedIn slug',
+            'facebook_slug': 'Facebook slug',
+            'instagram_slug': 'Instagram slug',
+            'x_slug': 'X/Twitter slug',
+            'youtube_slug': 'YouTube slug',
+            'website_url': 'Personal website',
+            'description': 'Additional notes'
+        }
+    },
+    'person_companies': {
+        'description': 'Relationship table linking people to companies. JOIN with unified_personnel for queries filtering by company.',
+        'columns': {
+            'relationship_id': 'Unique relationship identifier',
+            'person_id': 'Foreign key to unified_personnel.person_id',
+            'company_id': 'Company identifier',
+            'company_name': 'Company name - USE THIS for company filtering',
+            'is_active': 'Whether person currently works here (true/false)',
+            'start_date': 'When person started at company',
+            'title_at_company': 'Job title at this specific company',
+            'data_source': 'Source system'
         }
     },
     'unified_companies': {
@@ -210,44 +198,26 @@ TABLE_COLUMN_DEFINITIONS = {
         'columns': {
             'uid': 'Unique company identifier',
             'company_name': 'Official company name',
-            'description': 'Company description/services',
-            'company_type': 'Type of business/company',
-            'project_types': 'Types of projects company works on',
-            'followers': 'Number of followers/connections',
-            'arr_estimate': 'Annual recurring revenue estimate',
+            'description': 'Company description',
+            'company_type': 'Type of business',
+            'project_types': 'Types of projects',
             'number_of_employees': 'Employee count',
-            'billing_city': 'Company billing city',
-            'billing_state': 'Company billing state',
-            'headquarters_location': 'Company headquarters address',
-            'country_code': 'Country code',
-            'billing_code': 'Billing code',
-            'phone': 'Company phone number',
-            'phone_number': 'Alternative phone number',
-            'website': 'Company website URL',
-            'source': 'Data source system',
-            'bigin_id': 'Bigin system ID',
-            'rolodex_id': 'Rolodex system ID',
-            'rolodex_company_id': 'Rolodex company ID',
-            'workspace_id': 'Workspace identifier',
-            'lead_source': 'How company was acquired as lead',
-            'linkedin_description': 'LinkedIn company description',
-            'logo_url': 'Company logo URL',
-            'facebook_slug': 'Facebook page slug',
-            'linkedin_slug': 'LinkedIn company slug',
-            'x_slug': 'X/Twitter company slug',
-            'instagram_slug': 'Instagram company slug'
+            'billing_city': 'Company city',
+            'billing_state': 'Company state',
+            'headquarters_location': 'HQ address',
+            'phone': 'Company phone',
+            'website': 'Company website',
+            'linkedin_slug': 'LinkedIn company page'
         }
     }
 }
 
-# ----------------------------------------------------------------------
-# Prompt Builder
-# ----------------------------------------------------------------------
 def build_dynamic_system_prompt(user_question: str, limit: int = 50) -> str:
-    """Build system prompt with explicit column definitions and query examples"""
+    """Build system prompt with JOIN logic for normalized schema"""
     tables_info = discover_all_tables()
     if not tables_info:
         raise Exception("No tables found in database")
+    
     schema_blocks = []
     for table_name, info in tables_info.items():
         if table_name in TABLE_COLUMN_DEFINITIONS:
@@ -256,18 +226,13 @@ def build_dynamic_system_prompt(user_question: str, limit: int = 50) -> str:
                 f"Table '{table_name}': {config['description']}",
                 f"Records: {info['record_count']}",
                 "",
-                "AVAILABLE COLUMNS:"
+                "COLUMNS:"
             ]
             for col_name, col_description in config['columns'].items():
                 if any(col_name == db_col[0] for db_col in info['columns']):
                     examples = info['sample_data'].get(col_name, [])
                     examples_str = f" | Examples: {examples[:2]}" if examples else ""
                     schema_lines.append(f"  - {col_name}: {col_description}{examples_str}")
-            unconfigured_cols = [col[0] for col in info['columns'] 
-                               if col[0] not in config['columns'] 
-                               and col[0] not in ['created_at', 'updated_at']]
-            if unconfigured_cols:
-                schema_lines.append("  Other available columns: " + ", ".join(unconfigured_cols))
         else:
             schema_lines = [f"Table '{table_name}' ({info['record_count']} records)"]
             for col_name, data_type, nullable in info['columns']:
@@ -276,64 +241,105 @@ def build_dynamic_system_prompt(user_question: str, limit: int = 50) -> str:
                     examples_str = f" | Examples: {examples[:2]}" if examples else ""
                     schema_lines.append(f"  - {col_name}: {data_type}{examples_str}")
         schema_blocks.append("\n".join(schema_lines))
+    
     schema_full = "\n\n".join(schema_blocks)
+    
     system_prompt = f"""
-You are a PostgreSQL SQL generator. Generate ONLY a clean, valid SQL query.
-NO markdown, explanations, or comments. Just the SQL query.
+You are a PostgreSQL SQL generator for a NORMALIZED database schema.
+Generate ONLY a clean, valid SQL query. NO markdown, explanations, or comments.
 
-YOUR AVAILABLE TABLES AND COLUMNS:
+DATABASE SCHEMA:
 {schema_full}
 
 USER QUESTION: {user_question}
 
-IMPORTANT NOTES:
-- Company info for people is in 'company_name' field in unified_personnel table
-- Use ILIKE with % wildcards for flexible text searching (e.g., '%architect%' for roles, '%mumbai%' for city)
-- Always add LIMIT {limit}
-- If no exact match expected, use broader ILIKE terms (e.g., '%designer%' instead of '%sr designer%')
-- Handle prefixes like 'Ar.', 'Arch.', 'Ar' as 'architect' in title
-- Example: For "Find all the Architects in Mumbai", use:
-  SELECT full_name, title, company_name, city, email, mobile
-  FROM unified_personnel
-  WHERE title ILIKE '%architect%' AND city ILIKE '%mumbai%'
-  LIMIT 50
-- Example: For "Find contact details of sr designer at Komal Azure", use:
-  SELECT full_name, title, company_name, email, mobile
-  FROM unified_personnel
-  WHERE title ILIKE '%designer%' AND company_name ILIKE '%komal%azure%'
-  LIMIT 50
-- Return ONLY the SQL query
+CRITICAL RULES FOR NORMALIZED SCHEMA:
+
+1. WHEN TO USE JOIN:
+   - If query filters by COMPANY but wants PERSON details → JOIN unified_personnel with person_companies
+   - If query filters by PERSON but wants COMPANY details → JOIN unified_personnel with person_companies
+   - Company filtering is ONLY in person_companies.company_name (NOT in unified_personnel)
+
+2. JOIN SYNTAX (when needed):
+   SELECT p.full_name, p.title, p.email, p.mobile, pc.company_name
+   FROM unified_personnel p
+   INNER JOIN person_companies pc ON p.person_id = pc.person_id
+   WHERE pc.company_name ILIKE '%company_name%'
+   AND p.title ILIKE '%architect%'
+   LIMIT {limit}
+
+3. SIMPLE QUERIES (no JOIN needed):
+   - "Find all architects in Mumbai" → Only filter unified_personnel by title and city
+   - "Show me people with email..." → Only query unified_personnel
+   - "Get companies in Delhi" → Only query unified_companies
+
+4. TEXT SEARCH:
+   - Always use ILIKE with % wildcards for flexible matching
+   - Handle job title variations: 'Ar.', 'Arch.', 'Ar' → search '%architect%'
+   - Be flexible: 'sr designer' → search '%designer%'
+
+5. EXAMPLES:
+
+Example 1 - Simple (no JOIN):
+Q: "Find all architects in Mumbai"
+A: SELECT full_name, title, city, email, mobile
+   FROM unified_personnel
+   WHERE title ILIKE '%architect%' AND city ILIKE '%mumbai%'
+   LIMIT {limit}
+
+Example 2 - JOIN needed (company filter + person details):
+Q: "Find contact details of designer at Komal Azure"
+A: SELECT p.full_name, p.title, p.email, p.mobile, pc.company_name
+   FROM unified_personnel p
+   INNER JOIN person_companies pc ON p.person_id = pc.person_id
+   WHERE p.title ILIKE '%designer%' AND pc.company_name ILIKE '%komal%azure%'
+   LIMIT {limit}
+
+Example 3 - JOIN needed (person filter + company details):
+Q: "What companies does Jay Visariya work at?"
+A: SELECT p.full_name, pc.company_name, pc.is_active, pc.start_date
+   FROM unified_personnel p
+   INNER JOIN person_companies pc ON p.person_id = pc.person_id
+   WHERE p.full_name ILIKE '%jay%visariya%'
+   LIMIT {limit}
+
+Example 4 - JOIN needed (company + location):
+Q: "Find architects in Mumbai working at AllHome"
+A: SELECT p.full_name, p.title, p.city, p.email, pc.company_name
+   FROM unified_personnel p
+   INNER JOIN person_companies pc ON p.person_id = pc.person_id
+   WHERE p.title ILIKE '%architect%' 
+   AND p.city ILIKE '%mumbai%'
+   AND pc.company_name ILIKE '%allhome%'
+   LIMIT {limit}
+
+6. ALWAYS include LIMIT {limit}
+
+Return ONLY the SQL query.
 """
-    logger.debug(f"Generated system prompt for query: {user_question}")
+    
+    logger.debug(f"Generated system prompt for: {user_question}")
     return system_prompt
 
-# ----------------------------------------------------------------------
-# Gemini Call
-# ----------------------------------------------------------------------
 def ask_gemini(prompt: str) -> str:
-    """Send prompt to Gemini and clean response"""
     try:
         model = genai.GenerativeModel('gemini-2.0-flash')
         response = model.generate_content(prompt)
         if not response.text:
-            raise ValueError("Empty response from Gemini API")
+            raise ValueError("Empty response from Gemini")
         raw_text = response.text.strip()
         logger.info(f"Raw Gemini response: {raw_text}")
         clean_text = re.sub(r"^```(?:sql|python)?\s*|\s*```$", "", raw_text, flags=re.MULTILINE)
         clean_text = re.sub(r"^///.*|^--.*|^#.*", "", clean_text, flags=re.MULTILINE)
         clean_text = re.sub(r"^\*\*.*\*\*", "", clean_text, flags=re.MULTILINE)
         if not clean_text:
-            raise ValueError("No valid SQL query generated by Gemini")
+            raise ValueError("No valid SQL generated")
         return clean_text.strip()
     except Exception as e:
         logger.error(f"Gemini API error: {str(e)}")
         raise Exception(f"Gemini API error: {str(e)}")
 
-# ----------------------------------------------------------------------
-# SQL Validation
-# ----------------------------------------------------------------------
 def validate_sql_query(sql_query: str) -> bool:
-    """Validate SQL query syntax using sqlparse"""
     try:
         parsed = sqlparse.parse(sql_query)
         if not parsed or not parsed[0].tokens:
@@ -344,11 +350,7 @@ def validate_sql_query(sql_query: str) -> bool:
         logger.error(f"SQL validation error: {str(e)}")
         return False
 
-# ----------------------------------------------------------------------
-# SQL Execution
-# ----------------------------------------------------------------------
 def execute_sql_query(sql_query: str):
-    """Execute SQL query and return results"""
     if not validate_sql_query(sql_query):
         raise Exception("Invalid SQL query syntax")
     conn = get_db_connection()
@@ -371,18 +373,14 @@ def execute_sql_query(sql_query: str):
         logger.error(f"SQL execution error: {str(e)}")
         raise Exception(f"SQL execution error: {str(e)}")
 
-# ----------------------------------------------------------------------
-# Result Formatter
-# ----------------------------------------------------------------------
 def format_results_intelligently(result_df: pd.DataFrame, user_question: str) -> List[Dict[str, Any]]:
-    """Format results as structured list of dictionaries with cleaned data"""
     if result_df.empty:
         return []
 
     formatted_results = []
     skip_columns = [
-        'person_id', 'uid', 'bigin_id', 'rolodex_id', 'workspace_id', 'account_id',
-        'created_at', 'updated_at', 'source', 'lead_source', 'manager_id'
+        'person_id', 'uid', 'relationship_id', 'company_id',
+        'created_at', 'updated_at', 'manager_id'
     ]
 
     for idx, row in result_df.iterrows():
@@ -400,35 +398,29 @@ def format_results_intelligently(result_df: pd.DataFrame, user_question: str) ->
 
     return formatted_results
 
-# ----------------------------------------------------------------------
-# Processing Pipeline
-# ----------------------------------------------------------------------
 def process_query(user_question: str, limit: int = 50):
-    """Main query pipeline"""
     try:
         prompt = build_dynamic_system_prompt(user_question, limit)
         sql_query = ask_gemini(prompt)
         result_df, tables_used = execute_sql_query(sql_query)
         formatted_output = format_results_intelligently(result_df, user_question)
-        logger.info(f"Processed query: {user_question}, Results count: {len(formatted_output)}")
+        logger.info(f"Processed query: {user_question}, Results: {len(formatted_output)}")
         return sql_query, result_df, formatted_output, tables_used
     except Exception as e:
         logger.error(f"Error processing query '{user_question}': {str(e)}")
         return None, None, [], []
 
-# ----------------------------------------------------------------------
-# FastAPI Routes
-# ----------------------------------------------------------------------
 @app.get("/")
 async def root():
     try:
         tables_info = discover_all_tables()
         total_records = sum(info['record_count'] for info in tables_info.values())
         return {
-            "message": "Dynamic AI SQL Query API is running",
+            "message": "Normalized CRM Query API - with JOIN support",
             "status": "healthy",
             "available_tables": list(tables_info.keys()),
-            "total_tables": len(tables_info),
+            "architecture": "normalized",
+            "features": ["personnel", "companies", "relationships", "auto-JOIN"],
             "total_records": total_records
         }
     except Exception as e:
@@ -497,23 +489,16 @@ async def execute_query(request: QueryRequest):
             tables_used=[]
         )
 
-# ----------------------------------------------------------------------
-# Cache Reset Endpoint (Optional)
-# ----------------------------------------------------------------------
 @app.post("/reset-cache")
 async def reset_cache():
-    """Reset the table discovery cache"""
     try:
         discover_all_tables.cache_clear()
-        logger.info("Table discovery cache cleared")
-        return {"message": "Table discovery cache cleared successfully"}
+        logger.info("Cache cleared")
+        return {"message": "Cache cleared successfully"}
     except Exception as e:
         logger.error(f"Cache reset error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-# ----------------------------------------------------------------------
-# Run with Uvicorn
-# ----------------------------------------------------------------------
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)

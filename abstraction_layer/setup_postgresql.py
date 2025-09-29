@@ -12,21 +12,17 @@ DB_CONFIG = {
     'host': os.getenv('DB_HOST', 'localhost'),
     'database': os.getenv('DB_NAME', 'llm_query_db'),
     'user': os.getenv('DB_USER', 'postgres'),
-    'password': os.getenv('DB_PASSWORD'),  # This will read from .env
+    'password': os.getenv('DB_PASSWORD'),
     'port': os.getenv('DB_PORT', '5432')
 }
 
-# Configuration for CSV file discovery and processing
-CSV_FOLDER = r"C:\Projects\llm query\csvs"  # Your csvs subfolder
-CSV_PATTERNS = ["*.csv"]  # Just find ANY CSV file
+CSV_FOLDER = r"C:\Projects\Junior AI Engineer Task\Task_Assignment\schema_design"
 
-# Table name mappings (optional - for better naming)
+# Table name mappings - MAP YOUR OUTPUT FILES HERE
 TABLE_NAME_MAPPINGS = {
-    'final_unified_personnel_smart_modified': 'personnel',
-    'unified_companies_complete': 'companies',
-    # Add more mappings as needed for specific files
-    # 'my_products_export_2024': 'products',
-    # 'customer_data_latest': 'customers'
+    'unified_personnel': 'unified_personnel',  # Main personnel table
+    'person_companies': 'person_companies',    # Relationships table
+    'unified_companies_complete': 'unified_companies',
 }
 
 def create_connection():
@@ -39,13 +35,13 @@ def create_connection():
         return None
 
 def discover_csv_files():
-    """Automatically discover all CSV files in the project folder"""
+    """Discover CSV files"""
     csv_files = []
+    patterns = ["*.csv"]
     
-    for pattern in CSV_PATTERNS:
+    for pattern in patterns:
         files = glob.glob(os.path.join(CSV_FOLDER, pattern))
         csv_files.extend(files)
-    
     
     csv_files = sorted(list(set(csv_files)))
     
@@ -57,52 +53,42 @@ def discover_csv_files():
     return csv_files
 
 def generate_table_name(csv_path):
-    """Generate a clean table name from CSV filename"""
+    """Generate table name from CSV filename"""
     filename = os.path.splitext(os.path.basename(csv_path))[0]
     
- 
     if filename in TABLE_NAME_MAPPINGS:
         return TABLE_NAME_MAPPINGS[filename]
     
- 
     table_name = filename.lower()
     table_name = re.sub(r'[^a-z0-9_]', '_', table_name)
     table_name = re.sub(r'_+', '_', table_name)
     table_name = table_name.strip('_')
     
-    # Remove common suffixes
-    suffixes = ['_data', '_records', '_list', '_complete', '_modified', '_final']
-    for suffix in suffixes:
-        if table_name.endswith(suffix):
-            table_name = table_name[:-len(suffix)]
-            break
-    
     return table_name
 
 def analyze_csv_structure(csv_path):
-    """Analyze CSV structure and determine optimal column types"""
+    """Analyze CSV and determine column types"""
     try:
-      
         df_sample = pd.read_csv(csv_path, nrows=100)
-        
         columns_info = {}
         
         for col in df_sample.columns:
-        
             clean_col = col.lower().replace(' ', '_').replace('-', '_')
             clean_col = re.sub(r'[^a-z0-9_]', '_', clean_col)
             clean_col = re.sub(r'_+', '_', clean_col).strip('_')
             
-            # Determine if column should be TEXT (default for safety)
             col_type = "TEXT"
             
-            # Only use INTEGER for clearly numeric columns with reasonable values
-            if col.lower() in ['age', 'count', 'quantity', 'year', 'month', 'day'] or 'count' in col.lower():
+            # Check for boolean
+            if col.lower() in ['is_active', 'is_primary']:
+                col_type = "BOOLEAN"
+            # Check for integer
+            elif col.lower() in ['age', 'count', 'quantity', 'year', 'month', 'day'] or 'count' in col.lower():
                 non_null_values = df_sample[col].dropna()
                 if len(non_null_values) > 0:
                     try:
                         numeric_vals = pd.to_numeric(non_null_values, errors='coerce').dropna()
-                        if len(numeric_vals) == len(non_null_values) and all(-2147483648 <= x <= 2147483647 for x in numeric_vals):
+                        if len(numeric_vals) == len(non_null_values):
                             col_type = "INTEGER"
                     except:
                         pass
@@ -120,17 +106,28 @@ def analyze_csv_structure(csv_path):
         return {}
 
 def create_table_from_csv_structure(conn, table_name, columns_info):
-    """Create table based on CSV structure analysis"""
+    """Create table based on CSV structure with proper PRIMARY KEYs"""
     try:
         cursor = conn.cursor()
-        
         cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE;")
         
         column_definitions = []
-        for col_name, info in columns_info.items():
-            column_definitions.append(f"{col_name} {info['type']}")
         
-        # Add metadata columns
+        # Define primary key for each table
+        primary_key_map = {
+            'unified_personnel': 'person_id',
+            'person_companies': 'relationship_id',
+            'unified_companies': 'uid'
+        }
+        
+        pk_column = primary_key_map.get(table_name)
+        
+        for col_name, info in columns_info.items():
+            col_def = f"{col_name} {info['type']}"
+            if pk_column and col_name == pk_column:
+                col_def += " PRIMARY KEY"
+            column_definitions.append(col_def)
+        
         column_definitions.append("created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         column_definitions.append("updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP")
         
@@ -144,7 +141,7 @@ def create_table_from_csv_structure(conn, table_name, columns_info):
         conn.commit()
         cursor.close()
         
-        print(f"Created table: {table_name} with {len(columns_info)} columns")
+        print(f"Created table: {table_name} with {len(columns_info)} columns (PK: {pk_column or 'none'})")
         return True
         
     except Exception as e:
@@ -153,14 +150,24 @@ def create_table_from_csv_structure(conn, table_name, columns_info):
         return False
 
 def clean_and_import_csv(conn, csv_path, table_name, columns_info):
-    """Clean and import CSV data to PostgreSQL table"""
+    """Import CSV to PostgreSQL"""
     try:
-        print(f"Importing data from {os.path.basename(csv_path)} to {table_name}")
+        print(f"Importing {os.path.basename(csv_path)} to {table_name}")
         
         df = pd.read_csv(csv_path)
         print(f"Loaded {len(df)} rows")
         
+        # Clean data
         df = df.astype(str).replace(['nan', 'NaN', 'None', '<NA>', 'null', ''], None)
+        
+        # Handle boolean columns
+        for col_name, info in columns_info.items():
+            if info['type'] == 'BOOLEAN' and info['original_name'] in df.columns:
+                df[info['original_name']] = df[info['original_name']].map({
+                    'True': True, 'true': True, '1': True, 
+                    'False': False, 'false': False, '0': False,
+                    None: None
+                })
         
         column_mapping = {info['original_name']: col_name for col_name, info in columns_info.items()}
         df_clean = df.rename(columns=column_mapping)
@@ -202,7 +209,7 @@ def clean_and_import_csv(conn, csv_path, table_name, columns_info):
                 break
         
         cursor.close()
-        print(f"Successfully imported {total_imported} rows into {table_name}")
+        print(f"Successfully imported {total_imported} rows")
         return total_imported
         
     except Exception as e:
@@ -214,13 +221,11 @@ def create_smart_indexes(conn, table_name, columns_info):
     try:
         cursor = conn.cursor()
         
-        # Common search patterns for indexing
         index_patterns = [
             ('name', ['name', 'full_name', 'first_name', 'company_name', 'title']),
-            ('location', ['city', 'state', 'country', 'billing_city', 'headquarters_location']),
-            ('identifier', ['id', 'uid', 'person_id', 'company_id']),
+            ('location', ['city', 'state', 'country', 'billing_city']),
+            ('identifier', ['id', 'uid', 'person_id', 'company_id', 'relationship_id']),
             ('contact', ['email', 'phone', 'mobile']),
-            ('category', ['type', 'category', 'status', 'industry'])
         ]
         
         indexes_created = []
@@ -237,19 +242,41 @@ def create_smart_indexes(conn, table_name, columns_info):
                     cursor.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({col});")
                     indexes_created.append(index_name)
                 except:
-                    pass  
+                    pass
         
         conn.commit()
         cursor.close()
         
         if indexes_created:
-            print(f"Created {len(indexes_created)} indexes for {table_name}")
+            print(f"Created {len(indexes_created)} indexes")
         
     except Exception as e:
-        print(f"Error creating indexes for {table_name}: {e}")
+        print(f"Error creating indexes: {e}")
+
+def create_foreign_keys(conn):
+    """Create foreign key relationships after all tables are loaded"""
+    try:
+        cursor = conn.cursor()
+        
+        # FK from person_companies to unified_personnel
+        try:
+            cursor.execute("""
+                ALTER TABLE person_companies 
+                ADD CONSTRAINT fk_person_companies_personnel 
+                FOREIGN KEY (person_id) REFERENCES unified_personnel(person_id);
+            """)
+            print("Created FK: person_companies -> unified_personnel")
+        except Exception as e:
+            print(f"FK constraint already exists or error: {e}")
+        
+        conn.commit()
+        cursor.close()
+        
+    except Exception as e:
+        print(f"Error creating foreign keys: {e}")
 
 def get_all_tables_info(conn):
-    """Get information about all tables in the database"""
+    """Get database summary"""
     try:
         cursor = conn.cursor()
         cursor.execute("""
@@ -261,8 +288,8 @@ def get_all_tables_info(conn):
         """)
         
         tables = [row[0] for row in cursor.fetchall()]
-        
         tables_info = {}
+        
         for table in tables:
             cursor.execute(f"SELECT COUNT(*) FROM {table}")
             count = cursor.fetchone()[0]
@@ -289,7 +316,7 @@ def get_all_tables_info(conn):
         return {}
 
 def main():
-    print("Dynamic Multi-CSV Migration System")
+    print("Normalized Personnel & Companies Migration")
     print("=" * 50)
     
     conn = create_connection()
@@ -314,15 +341,18 @@ def main():
             
             columns_info = analyze_csv_structure(csv_path)
             if not columns_info:
-                print(f"Skipping {filename} - could not analyze structure")
+                print(f"Skipping {filename}")
                 continue
             
             if create_table_from_csv_structure(conn, table_name, columns_info):
-                # Import data
                 imported_count = clean_and_import_csv(conn, csv_path, table_name, columns_info)
                 
                 if imported_count > 0:
                     create_smart_indexes(conn, table_name, columns_info)
+        
+        # Create foreign keys after all tables loaded
+        print("\nCreating foreign key constraints...")
+        create_foreign_keys(conn)
         
         print("\n" + "=" * 50)
         print("MIGRATION SUMMARY:")
@@ -332,11 +362,11 @@ def main():
         total_records = 0
         
         for table_name, info in tables_info.items():
-            print(f"{table_name}: {info['record_count']} records, {len(info['columns'])} columns")
+            print(f"{table_name}: {info['record_count']} records")
             total_records += info['record_count']
         
-        print(f"\nTotal records across all tables: {total_records}")
-        print("Migration completed successfully!")
+        print(f"\nTotal records: {total_records}")
+        print("✓ Migration completed!")
         
     except Exception as e:
         print(f"Migration failed: {e}")
